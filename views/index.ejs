@@ -1,0 +1,32 @@
+<p>Register with one or more of these services:</p>
+
+<ul id="auth">
+ <li><%- authorizationLink('dropbox', 'Dropbox') %></li>
+ <li><%- authorizationLink('facebook', 'Facebook') %></li>
+ <li><%- authorizationLink('fitbit', 'FitBit') %></li>
+ <li><%- authorizationLink('foursquare', 'foursquare') %></li>
+ <li><%- authorizationLink('github', 'GitHub') %></li>
+ <li><%- authorizationLink('gmail', 'Gmail') %></li>
+ <li><%- authorizationLink('google', 'Google') %></li>
+ <li><%- authorizationLink('gcontacts', 'Google Contacts') %></li>
+ <li><%- authorizationLink('instagram', 'Instagram') %></li>
+ <li><%- authorizationLink('linkedin', 'LinkedIn') %></li>
+ <li><%- authorizationLink('runkeeper', 'RunKeeper') %></li>
+ <li><%- authorizationLink('tumblr', 'Tumblr') %></li>
+ <li><%- authorizationLink('twitter', 'Twitter') %></li>
+ <li><%- authorizationLink('wordpress', 'WordPress') %></li>
+</ul>
+
+<div id="empowered">
+ <a href="https://singly.com/"><img src="/empowered.png" /></a>
+</div>
+
+<div id="access-token-wrapper">
+ <p>Here's your access token for making API calls directly: <input type="text" id="access-token" /></p>
+</div>
+
+<div id="profiles"></div>
+
+<hr>
+
+<div id="statuses"></div>
