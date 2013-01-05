@@ -68,6 +68,10 @@ app.get('/', function(req, res) {
   });
 });
 
+app.get('/env', function(req, res) {
+  res.json(process.env);
+});
+
 app.listen(port);
 
 console.log(sprintf('Listening at %s using API endpoint %s.', hostBaseUrl,
