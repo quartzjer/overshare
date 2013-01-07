@@ -8,7 +8,7 @@
       "request": "2.9.203",
       "sprintf": "*",
       "express-partials": "*",
-      "express-singly": "*"
+      "singly": "*"
    },
    "engines": {
      "node": "0.8.x",

@@ -1,4 +1,4 @@
-<p>Register with one or more of these services:</p>
+<p>First, connect one or more of these services:</p>
 
 <ul id="auth">
 <li><%- authorizationLink('facebook', 'Facebook') %></li>
@@ -11,16 +11,11 @@
 <li><%- authorizationLink('flickr', 'Flickr') %></li>
 </ul>
 
+<div id="access-token-wrapper">
+ <p>Then, run this to save your token and activate the syncing: <input type="text" id="access-token" size="100" /></p>
+</div>
+
 <div id="empowered">
  <a href="https://singly.com/"><img src="/empowered.png" /></a>
 </div>
 
-<div id="access-token-wrapper">
- <p>Here's your access token for making API calls directly: <input type="text" id="access-token" /></p>
-</div>
-
-<div id="profiles"></div>
-
-<hr>
-
-<div id="statuses"></div>

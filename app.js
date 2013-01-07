@@ -22,15 +22,14 @@ var port = process.env.PORT || 7464;
 var clientId = process.env.SINGLY_CLIENT_ID;
 var clientSecret = process.env.SINGLY_CLIENT_SECRET;
 
-var hostBaseUrl = (process.env.HOST || 'http://localhost:' + port);
+// Require and initialize the singly module
+var singly = require('singly')(clientId, clientSecret);
+
 var apiBaseUrl = process.env.SINGLY_API_HOST || 'https://api.singly.com';
 
 // Create an HTTP server
 var app = express();
 
-// Require and initialize the singly module
-var expressSingly = require('express-singly')(app, clientId, clientSecret,
-  hostBaseUrl, hostBaseUrl + '/callback');
 
 // Pick a secret to secure your session storage
 var sessionSecret = '42';
@@ -47,11 +46,8 @@ app.configure(function() {
   app.use(express.session({
     secret: sessionSecret
   }));
-  expressSingly.configuration();
   app.use(app.router);
 });
-
-expressSingly.routes();
 
 // We want exceptions and stracktraces in development
 app.configure('development', function() {
@@ -61,10 +57,57 @@ app.configure('development', function() {
   }));
 });
 
+function authorizationLink(req) {
+  var returning = req && req.session && req.session.profiles;
+
+  return function(service, name) {
+    if (returning && req.session.profiles[service] !== undefined) {
+      return '<span class="check">&#10003;</span> ' + name;
+    }
+
+    var options = {
+      client_id: clientId,
+      redirect_uri: 'http://'+req.headers.host+'/callback',
+      service: service
+    };
+
+    // set account to the user's Singly id for profile merging
+    // see https://singly.com/docs/authorization
+    if (returning && req.session.profiles.id) {
+      options.access_token = req.session.accessToken;
+    }
+    else {
+      options.account = 'false';
+    }
+
+    var url = apiBaseUrl + '/oauth/authenticate?' + querystring.stringify(options)
+    return sprintf('<a href="%s">%s</a>', url, name);
+  };
+}
+
 app.get('/', function(req, res) {
   // Render out views/index.ejs, passing in the session
+  res.locals.authorizationLink = authorizationLink(req);
   res.render('index', {
     session: req.session
+  });
+});
+
+app.get('/callback', function(req, res) {
+  var code = req.param('code');
+
+  // Exchange the OAuth2 code for an access token
+  singly.getAccessToken(code, function(err, accessTokenRes, token) {
+    // Save the token for future API requests
+    req.session.accessToken = token.access_token;
+
+    // Fetch the user's service profile data
+    singly.get('/profiles', { access_token: token.access_token },
+      function(err, profiles) {
+      req.session.profiles = profiles.body;
+
+      res.redirect('/');
+    });
   });
 });
 
@@ -74,5 +117,4 @@ app.get('/env', function(req, res) {
 
 app.listen(port);
 
-console.log(sprintf('Listening at %s using API endpoint %s.', hostBaseUrl,
-  apiBaseUrl));
+console.log(sprintf('Listening on port %s using API endpoint %s.', port, apiBaseUrl));
