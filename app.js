@@ -75,6 +75,9 @@ function authorizationLink(req) {
     else {
       options.account = 'false';
     }
+    
+    // github needs special scope
+    if(service == 'github') options.scope = 'repo';
 
     var url = apiBaseUrl + '/oauth/authenticate?' + querystring.stringify(options)
     return sprintf('<a href="%s">%s</a>', url, name);
@@ -111,20 +114,20 @@ app.get('/callback', function(req, res) {
 
 // need to encrypt the singly token+repo server-side
 app.get('/generate', function(req, res) {
-  if (!req.session.accessToken) return res.json({err:"missing token"}, 500);
-  if (!req.query.repo) return res.json({err:"missing repo"}, 500);
-  var workKey = serialize.stringify({token:req.session.accessToken, repo:req.query.repo, created:Date.now()});
-  res.json({key:workKey});
+  if (!req.session.accessToken) return res.send("missing token", 500);
+  if (!req.query.repo) return res.json("missing repo", 500);
+  var syncKey = serialize.stringify({token:req.session.accessToken, repo:req.query.repo, created:Date.now()});
+  res.send("just testing, <a href='/sync?key="+syncKey+"'>sync url</a>");
 });
 
 // actually perform the work, broke out into a different file
-app.get('/work', function(req, res) {
-  if (!req.query.key) return res.send("missing work key", 500);
+app.get('/sync', function(req, res) {
+  if (!req.query.key) return res.send("missing sync key", 500);
   var options;
   try {
     options = serialize.parse(req.query.key);
   } catch(E) {}
-  if (!options) return res.send("invalid work key", 500);  
+  if (!options) return res.send("invalid sync key", 500);  
   
   worker.work(options, function(err, results){
     if(err) res.send(err, 500);

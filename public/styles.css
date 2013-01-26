@@ -33,3 +33,7 @@ li {
 #auth {
    width: 275px;
 }
+
+#repo-wrapper {
+  visibility: hidden;
+}

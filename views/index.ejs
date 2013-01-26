@@ -11,8 +11,14 @@
 <li><%- authorizationLink('flickr', 'Flickr') %></li>
 </ul>
 
-<div id="access-token-wrapper">
- <p>Then, run this to save your token and activate the syncing: <input type="text" id="access-token" size="100" /></p>
+<p>Then, connect your GitHub account so we can find a repo to sync to:</p>
+
+<ul id="auth">
+<li><%- authorizationLink('github', 'GitHub') %></li>
+</ul>
+
+<div id="repo-wrapper">
+ <p id="repo-block">test</p>
 </div>
 
 <div id="empowered">
