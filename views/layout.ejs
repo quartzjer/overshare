@@ -10,7 +10,7 @@
 
   <script>
    var accessToken = '<%= session.accessToken %>';
-   var githubProfile = <%= (session.profiles && session.profiles.github)?true:false %>;
+   var githubProfile = <%= (session.profile && session.profile.services.github)?true:false %>;
   </script>
 
   <script src="/client.js"></script>

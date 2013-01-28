@@ -54,10 +54,10 @@ app.configure('development', function() {
 });
 
 function authorizationLink(req) {
-  var returning = req && req.session && req.session.profiles;
+  var returning = req && req.session && req.session.profile;
 
   return function(service, name) {
-    if (returning && req.session.profiles[service] !== undefined) {
+    if (returning && req.session.profile.services[service] !== undefined) {
       return '<span class="check">&#10003;</span> ' + name;
     }
 
@@ -69,7 +69,7 @@ function authorizationLink(req) {
 
     // set account to the user's Singly id for profile merging
     // see https://singly.com/docs/authorization
-    if (returning && req.session.profiles.id) {
+    if (returning && req.session.profile.id) {
       options.access_token = req.session.accessToken;
     }
     else {
@@ -103,9 +103,9 @@ app.get('/callback', function(req, res) {
     req.session.accessToken = token.access_token;
 
     // Fetch the user's service profile data
-    singly.get('/profiles', { access_token: token.access_token },
-      function(err, profiles) {
-      req.session.profiles = profiles.body;
+    singly.get('/profile', { access_token: token.access_token },
+      function(err, profile) {
+      req.session.profile = profile.body;
 
       res.redirect('/');
     });
@@ -115,8 +115,9 @@ app.get('/callback', function(req, res) {
 // need to encrypt the singly token+repo server-side
 app.get('/generate', function(req, res) {
   if (!req.session.accessToken) return res.send("missing token", 500);
+  if (!req.session.profile || !req.session.profile.services.github) return res.send("missing github", 500);
   if (!req.query.repo) return res.json("missing repo", 500);
-  var syncKey = serialize.stringify({token:req.session.accessToken, repo:req.query.repo, created:Date.now()});
+  var syncKey = serialize.stringify({token:req.session.accessToken, repo:req.query.repo, user:req.session.profile.services.github.handle, created:Date.now()});
   res.send("just testing, <a href='/sync?key="+syncKey+"'>sync url</a>");
 });
 
