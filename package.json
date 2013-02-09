@@ -1,7 +1,8 @@
 {
-   "name": "nodejs_express_skeleton",
-   "version": "0.0.4",
+   "name": "overshare",
+   "version": "0.0.42",
    "dependencies": {
+   	  "async": "0.2.4",
       "ejs": "*",
       "express": "3.0.0rc4",
       "querystring": "*",

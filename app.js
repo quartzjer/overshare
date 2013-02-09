@@ -132,7 +132,8 @@ app.get('/sync', function(req, res) {
   
   worker.work(options, function(err, results){
     if(err) res.send(err, 500);
-    res.send("sync'd "+results.synced+" items");
+    res.send(results);
+//    res.send("sync'd "+results.synced+" items");
   });
 });
 
