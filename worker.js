@@ -1,6 +1,7 @@
 var request = require('request');
 var async = require('async');
 var urllib = require('url');
+var path = require('path');
 
 // list of the api paths to sync data from, /types/all gets most common things
 var SYNC = ["/types/all", "/services/runkeeper/fitness_activities", "/services/fitbit/activities"];
@@ -47,14 +48,14 @@ exports.work = function(options, cbDone) {
 function addFile(options, name, data)
 {
   if(!options.tree) options.tree = [];
-  options.tree.push({path:name, content:JSON.stringify(data)});
+  options.tree.push({path:name, content:JSON.stringify(data, null, 2)});
 }
 
 // just construct a nice name/path
 function saveEntry(options, entry)
 {
   var id = urllib.parse(entry.idr);
-  addFile(options, [id.host, id.pathname, entry.id].join('/')+'.json', entry);
+  addFile(options, path.join(id.host, id.pathname, entry.id+'.json'), entry);
 }
 
 // sync forward in time
@@ -73,7 +74,8 @@ function unitNewer(options, path, unit, cbDone)
     results.forEach(function(entry){
       if(entry.at > unit.since) unit.since = entry.at;
       saveEntry(options, entry);
-    })
+    });
+    cbDone();
   });
 }
 
@@ -93,32 +95,42 @@ function unitOlder(options, path, unit, cbDone)
     results.forEach(function(entry){
       if(entry.at < unit.until) unit.until = entry.at;
       saveEntry(options, entry);
-    })
+    });
+    cbDone();
   });
 }
 
 // fetch from the singly api, don't return errors just log them
 function getPage(options, path, args, cbResults)
 {
+  console.log("getPage",path,args);
   var url = 'https://api.singly.com'+path;
   args.access_token = options.token;
   request({uri:url, json:true, qs:args}, function(e, r, j){
-    if(e || r.statusCode != 200) console.log(url, args, e, r.statusCode, j);
+    if(e || r.statusCode > 202) console.log(url, args, e, r.statusCode, j);
     cbResults(Array.isArray(j) && j);
   });
+}
+
+// format a nicer error
+function nicer(e, status, body)
+{
+  if(e) return e.toString();
+  if(typeof body === 'string') return status + ': ' + body;
+  return status + JSON.stringify(body);
 }
 
 // need some state info to create the checkin and get state
 function init(options, cbDone)
 {
   proxy(options, {url:'/refs/heads/master'}, function(e, r, j){
-    if(e || r.statusCode != 200) return cbDone(e || [r.statusCode,j].join(" "));
+    if(e || r.statusCode > 202) return cbDone(nicer(e, r.statusCode, j));
     options.commitsha = j.object.sha;
     proxy(options, {url:'/commits/'+options.commitsha}, function(e, r, j){
-      if(e || r.statusCode != 200) return cbDone(e || [r.statusCode,j].join(" "));
+      if(e || r.statusCode > 202) return cbDone(nicer(e, r.statusCode, j));
       options.treesha = j.tree.sha;
       proxy(options, {url:'/trees/'+options.treesha}, function(e, r, j){
-        if(e || r.statusCode != 200) return cbDone(e || [r.statusCode,j].join(" "));
+        if(e || r.statusCode > 202) return cbDone(nicer(e, r.statusCode, j));
         j.tree.forEach(function(blob){ if(blob.path == 'state.json') options.statesha = blob.sha; });
         getState(options, cbDone);
       });
@@ -130,13 +142,13 @@ function commit(options, cbDone)
 {
   if(!options.tree) return cbDone("nothing to commit");
   proxy(options, {url:'/trees', method:'POST', headers:{'content-type':'application/javascript'}, body:JSON.stringify({base_tree:options.treesha, tree:options.tree})}, function(e, r, j){
-    if(e || r.statusCode != 200) return cbDone(e || [r.statusCode,j].join(" "));
+    if(e || r.statusCode > 202) return cbDone(nicer(e, r.statusCode, j));
     var data = {message:"autocommit", parents:[options.commitsha], tree:j.sha};
-    proxy({url:'/commits', method:'POST', headers:{'content-type':'application/javascript'}, body:JSON.stringify(data)}, function(e, r, j){
-      if(e || r.statusCode != 200) return cbDone(e || [r.statusCode,j].join(" "));
+    proxy(options, {url:'/commits', method:'POST', headers:{'content-type':'application/javascript'}, body:JSON.stringify(data)}, function(e, r, j){
+      if(e || r.statusCode > 202) return cbDone(nicer(e, r.statusCode, j));
       var data = {sha:j.sha};
-      proxy({url:'/refs/heads/master', method:'POST', headers:{'content-type':'application/javascript'}, body:JSON.stringify(data)}, function(e, r, j){
-        if(e || r.statusCode != 200) return cbDone(e || [r.statusCode,j].join(" "));
+      proxy(options, {url:'/refs/heads/master', method:'POST', headers:{'content-type':'application/javascript'}, body:JSON.stringify(data)}, function(e, r, j){
+        if(e || r.statusCode > 202) return cbDone(nicer(e, r.statusCode, j));
         cbDone(null, j);
       });      
     });      
@@ -149,7 +161,7 @@ function getState(options, cbDone)
   if(!options.statesha) return cbDone(null, {created:Date.now()});
   
   proxy(options, {url:'/blobs/'+options.statesha}, function(e, r, j){
-    if(e || r.statusCode != 200) return cbDone(e || [r.statusCode,j].join(" "));
+    if(e || r.statusCode > 202) return cbDone(nicer(e, r.statusCode, j));
     var content = (j.encoding == 'base64') ? new Buffer(j.content, 'base64').toString() : j.content;
     var js;
     try {
@@ -164,6 +176,7 @@ function getState(options, cbDone)
 // simple wrapper to hit github api auth'd
 function proxy(options, arg, cbDone)
 {
+  console.log("github",arg);
   arg.url = 'https://api.singly.com/proxy/github/repos/'+options.user+'/'+options.repo+'/git'+arg.url+'?access_token='+options.token;
   arg.json = true;
   request(arg, cbDone);
